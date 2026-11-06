@@ -75,7 +75,7 @@ def _bar_labels(ax, bars, values, fmt):
 
 
 def metric_bars_figure(table, metric, focus):
-    ordered = table[metric].sort_values()
+    ordered = table[metric].dropna().sort_values()
     fig, ax = new_figure(5.2, 3.1)
     colors = [BAR_FOCUS if name == focus else BAR_BASE for name in ordered.index]
     bars = ax.barh(ordered.index, ordered.values, height=0.52, color=colors)

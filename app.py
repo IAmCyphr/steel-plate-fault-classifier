@@ -59,8 +59,11 @@ def evaluate(name, data):
 
 
 def rank_label(table, metric, name):
-    rank = int(table[metric].rank(ascending=False, method="min")[name])
-    return f"{RANK_WORDS.get(rank, f'{rank}th')} of {len(table)}", rank == 1
+    ranks = table[metric].rank(ascending=False, method="min")
+    if pd.isna(ranks[name]):
+        return "Not defined for this file", False
+    rank = int(ranks[name])
+    return f"{RANK_WORDS.get(rank, f'{rank}th')} of {ranks.notna().sum()}", rank == 1
 
 
 def metric_cards(table, name):
@@ -68,9 +71,11 @@ def metric_cards(table, name):
     for metric in METRICS:
         text, leads = rank_label(table, metric, name)
         css = "metric-rank lead" if leads else "metric-rank"
+        value = table.loc[name, metric]
+        shown = "n/a" if pd.isna(value) else f"{value:.4f}"
         cards.append(
             f'<div class="metric-card"><div class="metric-label">{metric}</div>'
-            f'<div class="metric-value">{table.loc[name, metric]:.4f}</div>'
+            f'<div class="metric-value">{shown}</div>'
             f'<div class="{css}">{text}</div></div>'
         )
     st.markdown(f'<div class="metric-grid">{"".join(cards)}</div>', unsafe_allow_html=True)
@@ -109,25 +114,44 @@ def sidebar_controls():
     side.markdown(model_card(choice), unsafe_allow_html=True)
 
     if upload is not None:
-        return pd.read_csv(upload), upload.name, choice
+        try:
+            return pd.read_csv(upload), upload.name, choice
+        except (pd.errors.ParserError, pd.errors.EmptyDataError, UnicodeDecodeError):
+            side.error("That file could not be read as a CSV.")
+            return None, None, choice
     if use_sample and SAMPLE_FILE.exists():
         return pd.read_csv(SAMPLE_FILE), SAMPLE_FILE.name, choice
     return None, None, choice
 
 
 def check_columns(data):
-    expected = set(load_model("KNN").feature_names_in_) | {TARGET}
-    missing = sorted(expected - set(data.columns))
+    model = load_model("KNN")
+    features = list(model.feature_names_in_)
+    missing = sorted(set(features + [TARGET]) - set(data.columns))
     if missing:
         st.error(f"The file is missing required columns: {', '.join(missing)}")
         return False
-    if data[list(expected)].isna().any().any():
+    if data.empty:
+        st.error("The file has no rows.")
+        return False
+    if data[features + [TARGET]].isna().any().any():
         st.error("The file has empty cells. Remove or fill them and upload again.")
+        return False
+    non_numeric = [c for c in features if not pd.api.types.is_numeric_dtype(data[c])]
+    if non_numeric:
+        st.error(f"These feature columns must be numeric: {', '.join(non_numeric)}")
+        return False
+    unknown = sorted(set(data[TARGET].astype(str)) - set(model.classes_))
+    if unknown:
+        st.error(
+            f"Unknown values in the Class column: {', '.join(unknown)}. "
+            f"Expected: {', '.join(model.classes_)}."
+        )
         return False
     return True
 
 
-def header(data, source):
+def header():
     st.markdown('<h1 class="page-title">Steel Plate Fault Inspector</h1>', unsafe_allow_html=True)
     st.markdown(
         '<p class="page-sub">Pre-trained classifiers that predict one of seven surface fault types '
@@ -135,8 +159,9 @@ def header(data, source):
         "scores it on your test file without retraining.</p>",
         unsafe_allow_html=True,
     )
-    if data is None:
-        return
+
+
+def fact_chips(data, source):
     facts = [
         ("Source", source),
         ("Rows", f"{len(data):,}"),
@@ -164,7 +189,8 @@ def evaluation_tab(data, choice, table):
         st.pyplot(confusion_figure(y, pred, classes, view == "Row %"), width="stretch")
     with right:
         section("Per-class report", "Precision, recall and F1 for each fault type.")
-        report = classification_report(y, pred, labels=classes, output_dict=True, zero_division=0)
+        present = [c for c in classes if (y == c).any()]
+        report = classification_report(y, pred, labels=present, output_dict=True, zero_division=0)
         report.pop("accuracy", None)
         frame = pd.DataFrame(report).T.rename(columns={"f1-score": "f1"})
         frame["support"] = frame["support"].astype(int)
@@ -189,7 +215,7 @@ def comparison_tab(table, choice):
         st.pyplot(metric_bars_figure(table, metric, choice), width="stretch")
     with right:
         st.dataframe(
-            table.style.format("{:.4f}").highlight_max(axis=0, color="#cde2fb"),
+            table.style.format("{:.4f}", na_rep="n/a").highlight_max(axis=0, color="#cde2fb"),
             width="stretch",
         )
         st.caption(
@@ -213,7 +239,7 @@ def data_tab(data):
 
 def main():
     data, source, choice = sidebar_controls()
-    header(data, source)
+    header()
     if data is None:
         st.markdown(
             '<div class="empty-state"><b>No test data loaded</b>Upload a CSV in the sidebar, or tick '
@@ -223,8 +249,9 @@ def main():
         return
     if not check_columns(data):
         return
+    fact_chips(data, source)
 
-    table = pd.DataFrame({name: evaluate(name, data)[2] for name in MODEL_FILES}).T
+    table =pd.DataFrame({name: evaluate(name, data)[2] for name in MODEL_FILES}).T
     table.index.name = "ML Model Name"
 
     evaluation, comparison, dataset = st.tabs(["Evaluation", "Model comparison", "Data"])
