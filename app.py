@@ -5,6 +5,7 @@ import joblib
 import pandas as pd
 import streamlit as st
 from sklearn.metrics import classification_report
+from sklearn.pipeline import Pipeline
 
 import theme
 from charts import class_counts_figure, confusion_figure, metric_bars_figure
@@ -21,12 +22,19 @@ MODEL_FILES = {
     "Naive Bayes": "naive_bayes.joblib",
     "Support Vector Machine": "support_vector_machine.joblib",
 }
-MODEL_NOTES = {
-    "Logistic Regression": "Linear model on standardised features.",
-    "Decision Tree": "Depth-limited tree (max depth 8) on raw features.",
-    "KNN": "7 nearest neighbours on standardised features.",
-    "Naive Bayes": "Gaussian Naive Bayes, assumes independent features.",
-    "Support Vector Machine": "RBF kernel with probability estimates, standardised features.",
+MODEL_BLURBS = {
+    "Logistic Regression": "Linear decision boundaries. A fast, interpretable baseline.",
+    "Decision Tree": "Learns if/else splits on the readings. Handles rare classes well.",
+    "KNN": "Labels a plate by its closest neighbours in the training data.",
+    "Naive Bayes": "Probabilistic model that treats every feature as independent.",
+    "Support Vector Machine": "Finds a curved boundary between classes using an RBF kernel.",
+}
+MODEL_SETTINGS = {
+    "LogisticRegression": ["C", "max_iter"],
+    "DecisionTreeClassifier": ["max_depth", "criterion"],
+    "KNeighborsClassifier": ["n_neighbors", "weights"],
+    "GaussianNB": ["var_smoothing"],
+    "SVC": ["kernel", "C"],
 }
 METRICS = ["Accuracy", "AUC", "Precision", "Recall", "F1", "MCC"]
 RANK_WORDS = {1: "Best", 2: "2nd", 3: "3rd"}
@@ -74,15 +82,37 @@ def section(label, note=None):
         st.markdown(f'<div class="section-note">{note}</div>', unsafe_allow_html=True)
 
 
-def read_input():
-    st.sidebar.markdown('<div class="section-label">Test data</div>', unsafe_allow_html=True)
-    upload = st.sidebar.file_uploader("Upload test CSV", type="csv", label_visibility="collapsed")
-    use_sample = st.sidebar.checkbox("Use bundled test_data.csv", value=upload is None)
+def model_card(name):
+    model = load_model(name)
+    final = model[-1] if isinstance(model, Pipeline) else model
+    params = final.get_params()
+    rows = [("Scaling", "Standardised" if isinstance(model, Pipeline) else "None")]
+    rows += [(key, params[key]) for key in MODEL_SETTINGS[type(final).__name__]]
+    details = "".join(f"<div><dt>{k}</dt><dd>{v}</dd></div>" for k, v in rows)
+    return (
+        f'<div class="model-card"><div class="model-blurb">{MODEL_BLURBS[name]}</div>'
+        f"<dl>{details}</dl></div>"
+    )
+
+
+def sidebar_controls():
+    side = st.sidebar
+    side.markdown('<div class="section-label">Test data</div>', unsafe_allow_html=True)
+    upload = side.file_uploader("Upload test CSV", type="csv", label_visibility="collapsed")
+    use_sample = side.checkbox("Use bundled test_data.csv", value=upload is None)
+    if SAMPLE_FILE.exists():
+        side.download_button(
+            "Download sample CSV", SAMPLE_FILE.read_bytes(), SAMPLE_FILE.name, "text/csv", width="stretch"
+        )
+    side.markdown('<div class="section-label">Model</div>', unsafe_allow_html=True)
+    choice = side.selectbox("Classifier", list(MODEL_FILES), label_visibility="collapsed")
+    side.markdown(model_card(choice), unsafe_allow_html=True)
+
     if upload is not None:
-        return pd.read_csv(upload), upload.name
+        return pd.read_csv(upload), upload.name, choice
     if use_sample and SAMPLE_FILE.exists():
-        return pd.read_csv(SAMPLE_FILE), SAMPLE_FILE.name
-    return None, None
+        return pd.read_csv(SAMPLE_FILE), SAMPLE_FILE.name, choice
+    return None, None, choice
 
 
 def check_columns(data):
@@ -119,6 +149,12 @@ def header(data, source):
 
 def evaluation_tab(data, choice, table):
     y, pred, _, classes = evaluate(choice, data)
+    correct = int((y.to_numpy() == pred).sum())
+    st.markdown(
+        f'<div class="summary-line"><b>{choice}</b> classified <b>{correct:,}</b> of '
+        f"<b>{len(y):,}</b> plates correctly ({correct / len(y):.1%}).</div>",
+        unsafe_allow_html=True,
+    )
     metric_cards(table, choice)
 
     left, right = st.columns([1.05, 1], gap="large")
@@ -176,17 +212,17 @@ def data_tab(data):
 
 
 def main():
-    data, source = read_input()
+    data, source, choice = sidebar_controls()
     header(data, source)
     if data is None:
-        st.info("Upload a test CSV in the sidebar. It needs the 27 feature columns and a Class column.")
+        st.markdown(
+            '<div class="empty-state"><b>No test data loaded</b>Upload a CSV in the sidebar, or tick '
+            "the bundled test file. It needs the 27 feature columns and a Class column.</div>",
+            unsafe_allow_html=True,
+        )
         return
     if not check_columns(data):
         return
-
-    st.sidebar.markdown('<div class="section-label">Model</div>', unsafe_allow_html=True)
-    choice = st.sidebar.selectbox("Classifier", list(MODEL_FILES), label_visibility="collapsed")
-    st.sidebar.markdown(f'<div class="model-note">{MODEL_NOTES[choice]}</div>', unsafe_allow_html=True)
 
     table = pd.DataFrame({name: evaluate(name, data)[2] for name in MODEL_FILES}).T
     table.index.name = "ML Model Name"
