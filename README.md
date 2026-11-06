@@ -27,6 +27,10 @@ Metric averaging: Precision, Recall and F1 are **macro** averages; AUC is **one-
 
 ```
 ├── app.py               Streamlit app (loads saved models, never retrains)
+├── charts.py            confusion matrix and bar chart figures
+├── theme.py             colour tokens and stylesheet loader
+├── assets/style.css     app styling
+├── .streamlit/config.toml  theme settings
 ├── train.py             trains and saves all five models, writes test_data.csv
 ├── metrics.py           metric code shared by train.py and app.py
 ├── requirements.txt
@@ -65,4 +69,9 @@ Settings: Logistic Regression `max_iter=1000`; Decision Tree `max_depth=8`; KNN 
 
 ## e. Streamlit app
 
-Features: CSV upload (or the bundled `test_data.csv`), a model dropdown, the six metrics, a confusion matrix, a classification report, and a table comparing all five models on the uploaded data. The uploaded file must contain the 27 feature columns and `Class`. Models are loaded from `model/` and no training happens in the app.
+- **Sidebar:** CSV upload (or the bundled `test_data.csv`) and the model dropdown.
+- **Evaluation tab:** the six metrics for the selected model with its rank among the five, a confusion matrix (counts or row percentages), a per-class classification report and a predictions download.
+- **Model comparison tab:** a bar chart of any one metric across all five models, plus the full comparison table for the uploaded data.
+- **Data tab:** class balance, a preview of the loaded rows and a feature summary.
+
+The uploaded file must contain the 27 feature columns and `Class`. Models are loaded from `model/` and no training happens in the app.
