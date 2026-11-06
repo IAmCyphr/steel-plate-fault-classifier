@@ -78,4 +78,4 @@ Settings: Logistic Regression `max_iter=1000`; Decision Tree `max_depth=8`; KNN 
 - **Model comparison tab:** a bar chart of any one metric across all five models, plus the full comparison table for the uploaded data.
 - **Data tab:** class balance, a preview of the loaded rows and a feature summary.
 
-The uploaded file must contain the 27 feature columns and `Class`. Models are loaded from `model/` and no training happens in the app.
+The uploaded file must contain the 27 feature columns (numeric) and a `Class` column using the seven fault names. Extra columns and column order do not matter. Anything else gets a clear error message. The test file used in the experiments is `test_data.csv` in the repository root, and the sidebar also offers it as a download. If an uploaded file contains only some of the classes, precision, recall, F1 and AUC are averaged over the classes present, and AUC shows n/a when only one class is present. Models are loaded from `model/` and no training happens in the app.
