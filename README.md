@@ -1,13 +1,13 @@
 # Steel Plate Fault Inspector
 
-Multi-class classification of steel plate surface faults with five classical ML models, evaluated through a Streamlit app.
+Classifying steel plate surface faults with five ML models and a Streamlit app.
 
-- **GitHub repository:** https://github.com/IAmCyphr/steel-plate-fault-classifier
-- **Live app:** https://steel-plate-fault-classifier-gz6crdafengjsxp8qyzmx4.streamlit.app/
+- GitHub repository: https://github.com/IAmCyphr/steel-plate-fault-classifier
+- Live app: https://steel-plate-fault-classifier-gz6crdafengjsxp8qyzmx4.streamlit.app/
 
 ## a. Problem statement
 
-A steel mill inspects plates after rolling. Each plate is described by 27 numeric readings (geometry of the defect region, luminosity, steel type and thickness, and derived shape indices). The task is to predict which of **seven fault types** a plate has, so defective plates can be routed to the right corrective process. Five classifiers (Logistic Regression, Decision Tree, KNN, Gaussian Naive Bayes, SVM) are trained on the same split and compared on six metrics.
+Steel plates are checked for surface faults after rolling. Each plate in this dataset comes with 27 numeric measurements: the size and position of the defect, brightness readings, the steel type and thickness, and a few shape indices. The goal is to predict which of seven fault types a plate has, so that it can be sent to the right corrective process. I trained five classifiers (Logistic Regression, Decision Tree, KNN, Gaussian Naive Bayes and SVM) on the same train/test split and compared them on six metrics.
 
 ## b. Dataset description
 
@@ -15,40 +15,37 @@ A steel mill inspects plates after rolling. Each plate is described by 27 numeri
 |---|---|
 | Source | UCI Machine Learning Repository, *Steel Plates Faults* (Research Center of Sciences of Communication, Rome) |
 | Instances | 1,941 (no missing values, no duplicates) |
-| Features | 27 numeric (e.g. `X_Minimum`, `Pixels_Areas`, `Sum_of_Luminosity`, `Steel_Plate_Thickness`, `Edges_Index`, `LogOfAreas`, `SigmoidOfAreas`) |
-| Target | `Class`, one of 7 faults. The original 7 one-hot columns were merged into one label (exactly one is set per row) |
+| Features | 27 numeric, for example `X_Minimum`, `Pixels_Areas`, `Sum_of_Luminosity`, `Steel_Plate_Thickness`, `Edges_Index`, `LogOfAreas`, `SigmoidOfAreas` |
+| Target | `Class`, one of 7 faults. The original 7 one-hot columns were merged into a single label (exactly one is set per row) |
 | Class counts | Other_Faults 673, Bumps 402, K_Scatch 391, Z_Scratch 190, Pastry 158, Stains 72, Dirtiness 55 |
 
-Preprocessing: stratified 80/20 split (`random_state=42`), giving 1,552 training rows and 389 test rows. `StandardScaler` is applied inside the pipeline for Logistic Regression, KNN and SVM, so scaling is saved with each model. Decision Tree and Naive Bayes use raw features. The 389-row test split is saved as `test_data.csv`.
+The data was split 80/20 with stratification (`random_state=42`), which gives 1,552 training rows and 389 test rows. Logistic Regression, KNN and SVM are wrapped in a pipeline with `StandardScaler`, so the scaling is saved inside each model file. Decision Tree and Naive Bayes use the raw values. The 389 test rows are saved as `test_data.csv`.
 
-Metric averaging: Precision, Recall and F1 are **macro** averages; AUC is **one-vs-rest macro** from predicted probabilities; MCC is the multi-class generalisation. Macro averaging is used because the rare classes (Stains, Dirtiness) matter as much as the common ones.
+Precision, Recall and F1 are macro averages, AUC is one-vs-rest macro computed from the predicted probabilities, and MCC is the multi-class version. I used macro averaging because the small classes (Stains, Dirtiness) should count as much as the big ones.
 
 ## c. GitHub Repository Link
 
 https://github.com/IAmCyphr/steel-plate-fault-classifier
 
-Repository layout:
+Files in the repository:
 
-```
-├── app.py               Streamlit app (loads saved models, never retrains)
-├── charts.py            confusion matrix and bar chart figures
-├── theme.py             colour tokens and stylesheet loader
-├── assets/style.css     app styling
-├── .streamlit/config.toml  theme settings
-├── train.py             trains and saves all five models, writes test_data.csv
-├── metrics.py           metric code shared by train.py and app.py
-├── requirements.txt
-├── test_data.csv        held-out 389 rows for the app
-├── data/steel_plates_faults.csv
-├── model/               5 x .joblib pipelines
-└── results/metrics.csv
-```
+- `app.py`: the Streamlit app, which loads the saved models and never retrains
+- `charts.py`: confusion matrix and bar chart figures
+- `theme.py` and `assets/style.css`: colours and styling for the app
+- `.streamlit/config.toml`: theme settings
+- `train.py`: trains and saves the five models and writes `test_data.csv`
+- `metrics.py`: metric code shared by `train.py` and `app.py`
+- `requirements.txt`
+- `test_data.csv`: the 389 held-out rows
+- `data/steel_plates_faults.csv`: the full dataset
+- `model/`: the five saved `.joblib` pipelines
+- `results/metrics.csv`: the metrics table from `train.py`
 
-Run locally: `pip install -r requirements.txt`, then `python train.py` (about 5 seconds in total), then `streamlit run app.py`.
+To run it locally: `pip install -r requirements.txt`, then `python train.py` (about 5 seconds), then `streamlit run app.py`.
 
 ## d. Models used
 
-Test-set results (389 rows). Total training time for all five models is under 5 seconds.
+Results on the 389 test rows. Training all five models takes under 5 seconds.
 
 | ML Model Name | Accuracy | AUC | Precision | Recall | F1 | MCC |
 |---|---|---|---|---|---|---|
@@ -58,24 +55,24 @@ Test-set results (389 rows). Total training time for all five models is under 5 
 | Naive Bayes | 0.4524 | 0.8386 | 0.4315 | 0.4795 | 0.3830 | 0.3789 |
 | Support Vector Machine | 0.7506 | 0.9554 | 0.7971 | 0.7492 | 0.7667 | 0.6777 |
 
-Settings: Logistic Regression `max_iter=1000`; Decision Tree `max_depth=8`; KNN `k=7`; Gaussian NB defaults; SVM RBF kernel `C=5, probability=True`.
+Settings: Logistic Regression `max_iter=1000`, Decision Tree `max_depth=8`, KNN `k=7`, Gaussian Naive Bayes with defaults, SVM with RBF kernel and `C=5`.
 
 ### Observations
 
 | ML Model Name | Observation about model performance |
 |---|---|
-| Logistic Regression | Solid linear baseline (accuracy 0.7275, AUC 0.9379). Strong on the distinct faults K_Scatch (recall 0.91) and Z_Scratch (0.87), but weakest on Bumps (0.57), which it confuses with Other_Faults (30 of 81 Bumps). A linear boundary cannot separate those overlapping groups. |
-| Decision Tree | Lowest accuracy of the four non-NB models (0.7172) and lowest AUC (0.9120), because tree probabilities are coarse. Its macro precision (0.7854) and recall (0.7450) are good, and it is the best at rare classes: Dirtiness recall 0.82 against 0.64 for LR and SVM, since splits can isolate small groups. Max depth 8 keeps it from overfitting. |
-| KNN | Second-best accuracy (0.7429) and best on K_Scatch (recall 0.96) once features are scaled, but worst at Pastry (recall 0.38), a mid-sized class whose neighbours are mostly Bumps. Training is instant, but the saved model stores the whole training set, and prediction is the slow part. |
-| Naive Bayes | Clearly the worst (accuracy 0.4524, MCC 0.3789). Many features are strongly correlated (min/max coordinates, area, log-area, sigmoid-area), which breaks the independence assumption. It labels most Other_Faults as Bumps (78 of 135) and recalls only 10% of Other_Faults and 3% of Pastry. It does well on Stains (0.86) and Bumps (0.74). |
-| Support Vector Machine | Best on accuracy (0.7506), AUC (0.9554), precision (0.7971) and MCC (0.6777). The RBF kernel handles the non-linear overlap between classes, and its probabilities rank classes best. Remaining errors are mostly Bumps and Other_Faults confused both ways (24 and 23 cases). Training takes about 0.6 s. |
-| **Overall winner** | **Support Vector Machine.** It leads on Accuracy, AUC, Precision, F1 and MCC; only Recall goes to KNN (0.7573 vs 0.7492). KNN is a close second, and Naive Bayes is clearly unsuitable for this correlated feature set. |
+| Logistic Regression | A decent linear baseline: accuracy 0.7275 and AUC 0.9379. It does well on K_Scatch (recall 0.91) and Z_Scratch (0.87) but badly on Bumps (recall 0.57). 30 of the 81 Bumps were predicted as Other_Faults, because a straight boundary cannot separate those two groups. |
+| Decision Tree | Accuracy 0.7172 and AUC 0.9120, the lowest of the four models other than Naive Bayes. A tree gives coarse probabilities, which hurts AUC. Precision (0.7854) and recall (0.7450) are still good, and it handles the small classes best: Dirtiness recall is 0.82 against 0.64 for Logistic Regression and SVM. The depth is limited to 8 to avoid overfitting. |
+| KNN | Second best accuracy (0.7429) and the best recall overall (0.7573). After scaling it is very good on K_Scatch (recall 0.96) but weak on Pastry (recall 0.38), where many plates are predicted as Bumps or Other_Faults. It trains instantly, but the saved model keeps the whole training set and prediction is the slower part. |
+| Naive Bayes | By far the worst: accuracy 0.4524 and MCC 0.3789. Many features are highly correlated (the min and max coordinates, area, log of area and so on), while Naive Bayes assumes they are independent. 78 of the 135 Other_Faults plates were predicted as Bumps, so recall is only 0.10 on Other_Faults and 0.03 on Pastry. It does fine on Stains (0.86) and Bumps (0.74). |
+| Support Vector Machine | Best accuracy (0.7506), AUC (0.9554), precision (0.7971), F1 (0.7667) and MCC (0.6777). The RBF kernel can model the overlap between classes, which a linear model cannot. Most of the remaining mistakes are Bumps and Other_Faults mixed up in both directions (24 and 23 plates). Training takes under a second. |
+| Overall winner | Support Vector Machine. It has the best Accuracy, AUC, Precision, F1 and MCC, and only loses Recall to KNN (0.7573 against 0.7492). KNN comes second. Naive Bayes is not suitable for this dataset because the features are so correlated. |
 
 ## e. Streamlit app
 
-- **Sidebar:** CSV upload (or the bundled `test_data.csv`) and the model dropdown.
-- **Evaluation tab:** the six metrics for the selected model with its rank among the five, a confusion matrix (counts or row percentages), a per-class classification report and a predictions download.
-- **Model comparison tab:** a bar chart of any one metric across all five models, plus the full comparison table for the uploaded data.
-- **Data tab:** class balance, a preview of the loaded rows and a feature summary.
+- Sidebar: upload a CSV (or tick the bundled `test_data.csv`) and pick a model from the dropdown.
+- Evaluation tab: the six metrics for the chosen model, a confusion matrix, a per-class classification report and a button to download the predictions.
+- Model comparison tab: a bar chart of one metric across all five models, and a table with every metric.
+- Data tab: class balance, a preview of the rows and a feature summary.
 
-The uploaded file must contain the 27 feature columns (numeric) and a `Class` column using the seven fault names. Extra columns and column order do not matter. Anything else gets a clear error message. The test file used in the experiments is `test_data.csv` in the repository root, and the sidebar also offers it as a download. If an uploaded file contains only some of the classes, precision, recall, F1 and AUC are averaged over the classes present, and AUC shows n/a when only one class is present. Models are loaded from `model/` and no training happens in the app.
+The uploaded CSV needs the 27 feature columns (numeric) and a `Class` column with the seven fault names. Extra columns and a different column order are fine. Any other file shows an error message. The test file I used is `test_data.csv` in the repository root, and the sidebar has a button to download it. If the uploaded file has only some of the classes, precision, recall, F1 and AUC are averaged over the classes that are present, and AUC shows n/a when there is only one class. The app only loads the saved models from `model/`. It never trains.
