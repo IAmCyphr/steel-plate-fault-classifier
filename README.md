@@ -2,8 +2,8 @@
 
 Multi-class classification of steel plate surface faults with five classical ML models, evaluated through a Streamlit app.
 
-- **GitHub repository:** `<ADD YOUR REPO LINK>`
-- **Live app:** `<ADD YOUR STREAMLIT LINK>`
+- **GitHub repository:** https://github.com/IAmCyphr/steel-plate-fault-classifier
+- **Live app:** https://steel-plate-fault-classifier-gz6crdafengjsxp8qyzmx4.streamlit.app/
 
 ## a. Problem statement
 
