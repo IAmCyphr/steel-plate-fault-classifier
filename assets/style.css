@@ -35,7 +35,28 @@ footer, #MainMenu, [data-testid="stDecoration"] { visibility: hidden; height: 0;
 .metric-rank.lead { color: var(--accent-strong); font-weight: 600; }
 @media (max-width: 900px) { .metric-grid { grid-template-columns: repeat(2, 1fr); } }
 
-.model-note { font-size: 0.82rem; color: var(--ink-secondary); line-height: 1.45; }
+.model-card {
+  background: var(--surface-raised); border: 1px solid var(--hairline); border-radius: 10px;
+  padding: 0.8rem 0.9rem; margin-top: 0.6rem;
+}
+.model-blurb { font-size: 0.82rem; color: var(--ink-secondary); line-height: 1.45; margin-bottom: 0.6rem; }
+.model-card dl { margin: 0; border-top: 1px solid var(--hairline); }
+.model-card dl div { display: flex; justify-content: space-between; padding: 0.3rem 0; font-size: 0.78rem; border-bottom: 1px solid var(--hairline); }
+.model-card dl div:last-child { border-bottom: 0; padding-bottom: 0; }
+.model-card dt { color: var(--ink-muted); }
+.model-card dd { margin: 0; color: var(--ink); font-weight: 500; font-variant-numeric: tabular-nums; }
+
+.summary-line { color: var(--ink-secondary); margin: 1.1rem 0 0.9rem; font-size: 0.95rem; }
+.summary-line b { color: var(--ink); font-weight: 600; }
+
+.empty-state {
+  border: 1px dashed var(--hairline); border-radius: 12px; padding: 2rem; text-align: center;
+  color: var(--ink-secondary); background: var(--surface-raised); line-height: 1.6;
+}
+.empty-state b { display: block; color: var(--ink); font-size: 1.05rem; margin-bottom: 0.3rem; }
+
+[data-baseweb="select"] > div { border-radius: 8px; border-color: var(--hairline); background: var(--surface-raised); }
+[data-baseweb="select"] > div:focus-within { border-color: var(--accent); box-shadow: 0 0 0 1px var(--accent); }
 
 [data-testid="stSidebar"] { background: var(--surface-sunken); border-right: 1px solid var(--hairline); }
 [data-testid="stSidebar"] .block-container { padding-top: 1.5rem; }
