@@ -23,7 +23,11 @@ Preprocessing: stratified 80/20 split (`random_state=42`), giving 1,552 training
 
 Metric averaging: Precision, Recall and F1 are **macro** averages; AUC is **one-vs-rest macro** from predicted probabilities; MCC is the multi-class generalisation. Macro averaging is used because the rare classes (Stains, Dirtiness) matter as much as the common ones.
 
-## c. GitHub repository
+## c. GitHub Repository Link
+
+https://github.com/IAmCyphr/steel-plate-fault-classifier
+
+Repository layout:
 
 ```
 ├── app.py               Streamlit app (loads saved models, never retrains)
